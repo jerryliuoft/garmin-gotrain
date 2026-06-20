@@ -1,0 +1,12 @@
+# Garmin Connect IQ Build output
+bin/
+gen/
+mir/
+
+# Developer Keys
+developer_key
+*.der
+
+# OS-specific files
+.DS_Store
+Thumbs.db
