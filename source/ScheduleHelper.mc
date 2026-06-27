@@ -68,62 +68,59 @@ class ScheduleHelper {
         return (info.hour * 60) + info.min;
     }
 
+    // Build a departure dictionary from schedule array index and current minutes
+    static function buildDeparture(schedule as Array<Number>, idx as Number, currentMinutes as Number, station as String) as Dictionary {
+        var departureMinutes = schedule[idx];
+        var platformVal = schedule[idx + 1];
+        var minutesUntil = departureMinutes > currentMinutes ? departureMinutes - currentMinutes : 0;
+        var hours = departureMinutes / 60;
+        var mins = departureMinutes % 60;
+        var hoursStr = hours.toString();
+        if (hours < 10) { hoursStr = "0" + hoursStr; }
+        var minsStr = mins.toString();
+        if (mins < 10) { minsStr = "0" + minsStr; }
+        return {
+            "time" => hoursStr + ":" + minsStr,
+            "platform" => platformVal.toString(),
+            "minutesUntil" => minutesUntil,
+            "station" => station
+        };
+    }
+
     // Find the next upcoming departure for the active station
     // Returns: { time: "HH:MM", platform: "N", minutesUntil: N, station: "Name" } or null
     static function getNextDeparture() as Dictionary or Null {
+        var departures = getNextDepartures(1);
+        if (departures.size() > 0) {
+            return departures[0];
+        }
+        return null;
+    }
+
+    // Find the next N upcoming departures for the active station.
+    // Returns an Array of up to 'count' departure dictionaries.
+    static function getNextDepartures(count as Number) as Array<Dictionary> {
         var station = getActiveStation();
         var schedule = getScheduleForStation(station);
         var currentMinutes = getCurrentTimeInMinutes();
+        var results = [] as Array<Dictionary>;
 
-        // Find first train after current time
-        for (var i = 0; i < schedule.size(); i += 2) {
-            var departureMinutes = schedule[i];
-            var platformVal = schedule[i+1];
-
-            if (departureMinutes > currentMinutes) {
-                var minutesUntil = departureMinutes - currentMinutes;
-                var hours = departureMinutes / 60;
-                var mins = departureMinutes % 60;
-                var hoursStr = hours.toString();
-                if (hours < 10) {
-                    hoursStr = "0" + hoursStr;
-                }
-                var minsStr = mins.toString();
-                if (mins < 10) {
-                    minsStr = "0" + minsStr;
-                }
-                return {
-                    "time" => hoursStr + ":" + minsStr,
-                    "platform" => platformVal.toString(),
-                    "minutesUntil" => minutesUntil,
-                    "station" => station
-                };
+        // Walk the schedule looking for future trains
+        for (var i = 0; i < schedule.size() && results.size() < count; i += 2) {
+            if (schedule[i] > currentMinutes) {
+                results.add(buildDeparture(schedule, i, currentMinutes, station));
             }
         }
 
-        // If no future trains today, wrap around to first train of schedule
-        if (schedule.size() > 0) {
-            var departureMinutes = schedule[0];
-            var platformVal = schedule[1];
-            var hours = departureMinutes / 60;
-            var mins = departureMinutes % 60;
-            var hoursStr = hours.toString();
-            if (hours < 10) {
-                hoursStr = "0" + hoursStr;
-            }
-            var minsStr = mins.toString();
-            if (mins < 10) {
-                minsStr = "0" + minsStr;
-            }
-            return {
-                "time" => hoursStr + ":" + minsStr,
-                "platform" => platformVal.toString(),
-                "minutesUntil" => 0,
-                "station" => station
-            };
+        // If we still need more entries and the schedule has trains, add from the
+        // beginning of the schedule (wrapping to next day)
+        var i = 0;
+        while (results.size() < count && i < schedule.size()) {
+            results.add(buildDeparture(schedule, i, currentMinutes, station));
+            i += 2;
         }
 
-        return null;
+        return results;
     }
 
     // Format minutes until into a readable string

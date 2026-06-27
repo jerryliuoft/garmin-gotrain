@@ -18,94 +18,113 @@ class GotrainView extends WatchUi.View {
     function onShow() as Void {
     }
 
-    // Update the view - display the next train departure in glance format
+    // Update the view - display the next 3 train departures
     function onUpdate(dc as Dc) as Void {
         // Clear the screen with black background
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
 
-        // Set text color to white
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
 
         try {
-            // Fetch next departure dynamically using ScheduleHelper
-            var nextDeparture = ScheduleHelper.getNextDeparture();
-            
-            // Screen dimensions and subscreen detection
             var width = dc.getWidth();
             var height = dc.getHeight();
-            var centerX = width / 2;
             var subscreen = null;
             if (dc has :getSubscreen) {
                 subscreen = dc.getSubscreen();
             }
 
-            if (nextDeparture != null) {
-                var nextTime = nextDeparture["time"] as String;
-                var nextPlatform = nextDeparture["platform"] as String;
-                var minutesUntil = nextDeparture["minutesUntil"] as Number;
-                var stationName = nextDeparture["station"] as String;
+            // Fetch next 3 departures
+            var departures = ScheduleHelper.getNextDepartures(3);
 
-                // Format the countdown string using helper
-                var countdownStr = ScheduleHelper.formatMinutesUntil(minutesUntil);
+            if (departures.size() > 0) {
+                var nextDep = departures[0];
+                var stationName = nextDep["station"] as String;
 
+                // ---- Subscreen (top-right): platform of the NEXT train ----
+                // This is the most actionable info — "which platform do I run to?"
                 if (subscreen != null) {
-                    // --- Layout WITH subscreen (e.g. Instinct 2 / 3) ---
                     var subCenterX = subscreen.x + (subscreen.width / 2);
                     var subCenterY = subscreen.y + (subscreen.height / 2);
-                    
-                    // Draw platform in the subscreen
-                    dc.drawText(subCenterX, subCenterY, Graphics.FONT_MEDIUM, nextPlatform, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+                    var pltLabelY = subCenterY - dc.getFontHeight(Graphics.FONT_TINY) - 1;
+                    dc.drawText(subCenterX, pltLabelY, Graphics.FONT_TINY, "PLT", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+                    dc.drawText(subCenterX, subCenterY, Graphics.FONT_MEDIUM, nextDep["platform"] as String, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+                }
 
-                    // Draw station name header at the top-center (shifted left slightly to not feel crowded near subscreen)
-                    var headerY = (height * 0.15).toNumber();
-                    dc.drawText(centerX - 15, headerY, Graphics.FONT_SMALL, stationName, Graphics.TEXT_JUSTIFY_CENTER);
+                // ---- Main display: departure board ----
+                // Keep content away from the subscreen on the right
+                var leftMargin = 10;
+                var rightEdge = (subscreen != null) ? subscreen.x - 4 : width - 8;
+                var boardCenterX = leftMargin + (rightEdge - leftMargin) / 2;
 
-                    // Draw a divider line
-                    var dividerY = headerY + dc.getFontHeight(Graphics.FONT_SMALL) + 2;
-                    dc.drawLine(20, dividerY, width - 40, dividerY);
+                // Station name header
+                var headerY = 4;
+                dc.drawText(boardCenterX, headerY, Graphics.FONT_TINY, stationName, Graphics.TEXT_JUSTIFY_CENTER);
 
-                    // Time display
-                    var timeY = dividerY + 10;
-                    dc.drawText(centerX - 15, timeY, Graphics.FONT_LARGE, nextTime, Graphics.TEXT_JUSTIFY_CENTER);
+                // Divider
+                var dividerY = headerY + dc.getFontHeight(Graphics.FONT_TINY) + 2;
+                dc.drawLine(leftMargin, dividerY, rightEdge, dividerY);
 
-                    // Countdown displays below time
-                    var countdownY = timeY + dc.getFontHeight(Graphics.FONT_LARGE) + 6;
-                    dc.drawText(centerX - 15, countdownY, Graphics.FONT_SMALL, countdownStr, Graphics.TEXT_JUSTIFY_CENTER);
+                // Three evenly-spaced rows for the departure list
+                var rowAreaTop = dividerY + 4;
+                var rowAreaHeight = height - rowAreaTop - 4;
+                var rowHeight = rowAreaHeight / 3;
 
-                } else {
-                    // --- Standard Layout WITHOUT subscreen (e.g. standard circular/rectangular watches) ---
-                    // Header (Station Name)
-                    var headerY = (height * 0.15).toNumber();
-                    dc.drawText(centerX, headerY, Graphics.FONT_SMALL, stationName, Graphics.TEXT_JUSTIFY_CENTER);
+                for (var r = 0; r < departures.size(); r++) {
+                    var dep = departures[r];
+                    var depTime = dep["time"] as String;
+                    var depPlatform = dep["platform"] as String;
+                    var depMinutes = dep["minutesUntil"] as Number;
+                    var countdown = ScheduleHelper.formatMinutesUntil(depMinutes);
 
-                    // Divider line
-                    var dividerY = headerY + dc.getFontHeight(Graphics.FONT_SMALL) + 2;
-                    dc.drawLine(20, dividerY, width - 20, dividerY);
+                    var rowTop = rowAreaTop + r * rowHeight;
+                    var rowMidY = rowTop + rowHeight / 2;
 
-                    // Time and Platform side-by-side
-                    var contentY = dividerY + 10;
-                    dc.drawText(centerX - 10, contentY, Graphics.FONT_LARGE, nextTime, Graphics.TEXT_JUSTIFY_RIGHT);
-                    dc.drawText(centerX + 10, contentY + 5, Graphics.FONT_SMALL, "Plat " + nextPlatform, Graphics.TEXT_JUSTIFY_LEFT);
+                    // Highlight the next (first) row
+                    if (r == 0) {
+                        dc.setColor(0x303030, Graphics.COLOR_TRANSPARENT);
+                        dc.fillRectangle(leftMargin - 2, rowTop, rightEdge - leftMargin + 4, rowHeight - 1);
+                        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                    }
 
-                    // Countdown
-                    var countdownY = contentY + dc.getFontHeight(Graphics.FONT_LARGE) + 6;
-                    dc.drawText(centerX, countdownY, Graphics.FONT_SMALL, countdownStr, Graphics.TEXT_JUSTIFY_CENTER);
+                    var timeFont = (r == 0) ? Graphics.FONT_MEDIUM : Graphics.FONT_SMALL;
+                    var infoFont = Graphics.FONT_TINY;
+
+                    // Time — left side
+                    var timeY = rowMidY - dc.getFontHeight(timeFont) / 2;
+                    dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                    dc.drawText(leftMargin, timeY, timeFont, depTime, Graphics.TEXT_JUSTIFY_LEFT);
+
+                    // Countdown — center, green for next train
+                    dc.setColor(r == 0 ? Graphics.COLOR_GREEN : Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
+                    dc.drawText(boardCenterX, rowMidY - dc.getFontHeight(infoFont) / 2, infoFont, countdown, Graphics.TEXT_JUSTIFY_CENTER);
+
+                    // Platform — right side (skip row 0 if subscreen already shows it)
+                    if (r > 0 || subscreen == null) {
+                        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                        dc.drawText(rightEdge, rowMidY - dc.getFontHeight(infoFont) / 2, infoFont, "P" + depPlatform, Graphics.TEXT_JUSTIFY_RIGHT);
+                    }
+
+                    // Row separator
+                    if (r < departures.size() - 1) {
+                        dc.setColor(0x404040, Graphics.COLOR_TRANSPARENT);
+                        dc.drawLine(leftMargin, rowTop + rowHeight - 1, rightEdge, rowTop + rowHeight - 1);
+                    }
+
+                    dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                 }
             } else {
-                // No more trains today
+                // No trains
                 var activeStation = ScheduleHelper.getActiveStation();
                 if (subscreen != null) {
                     var subCenterX = subscreen.x + (subscreen.width / 2);
                     var subCenterY = subscreen.y + (subscreen.height / 2);
                     dc.drawText(subCenterX, subCenterY, Graphics.FONT_SMALL, "-", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
                 }
-                
                 var headerY = (height * 0.25).toNumber();
-                dc.drawText(centerX, headerY, Graphics.FONT_SMALL, activeStation, Graphics.TEXT_JUSTIFY_CENTER);
-                
+                dc.drawText(width / 2, headerY, Graphics.FONT_SMALL, activeStation, Graphics.TEXT_JUSTIFY_CENTER);
                 var noTrainsY = headerY + dc.getFontHeight(Graphics.FONT_SMALL) + 15;
-                dc.drawText(centerX, noTrainsY, Graphics.FONT_TINY, "No trains", Graphics.TEXT_JUSTIFY_CENTER);
+                dc.drawText(width / 2, noTrainsY, Graphics.FONT_TINY, "No trains", Graphics.TEXT_JUSTIFY_CENTER);
             }
         } catch (ex) {
             var msg = ex.getErrorMessage();
@@ -113,7 +132,7 @@ class GotrainView extends WatchUi.View {
                 msg = "Unknown Error";
             }
             Toybox.System.println("Exception in onUpdate: " + msg);
-            
+
             var width = dc.getWidth();
             var height = dc.getHeight();
             var centerX = width / 2;
