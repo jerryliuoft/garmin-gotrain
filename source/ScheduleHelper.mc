@@ -94,17 +94,15 @@ class ScheduleHelper {
     static function formatMinutesUntil(minutes as Number) as String {
         if (minutes == 0) {
             return "now";
-        } else if (minutes == 1) {
-            return "in 1 min";
         } else if (minutes < 60) {
-            return "in " + minutes + " mins";
+            return minutes + "m";
         } else {
             var hours = minutes / 60;
             var mins = minutes % 60;
             if (mins == 0) {
-                return "in " + hours + " hr";
+                return hours + "h";
             } else {
-                return "in " + hours + "h" + mins + "m";
+                return hours + "h" + mins + "m";
             }
         }
     }

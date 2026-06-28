@@ -2,12 +2,15 @@ import Toybox.Graphics;
 import Toybox.WatchUi;
 import Toybox.Lang;
 import Toybox.Time;
+import Toybox.Timer;
 
 class GotrainView extends WatchUi.View {
 
     var mIsLoading as Boolean = false;
     var mError as String or Null = null;
     var mLayoutManager as LayoutSystem.LayoutManager or Null = null;
+    var mTimer as Timer.Timer or Null = null;
+    var mScrollOffset as Number = 0;
 
     function initialize() {
         WatchUi.View.initialize();
@@ -21,6 +24,21 @@ class GotrainView extends WatchUi.View {
     // Called when this View is brought to the foreground
     function onShow() as Void {
         fetchFreshData();
+        mTimer = new Timer.Timer();
+        mTimer.start(method(:onTimer), 150, true);
+    }
+
+    // Called when this View is removed from the screen
+    function onHide() as Void {
+        if (mTimer != null) {
+            mTimer.stop();
+            mTimer = null;
+        }
+    }
+
+    function onTimer() as Void {
+        mScrollOffset += 3;
+        WatchUi.requestUpdate();
     }
 
     function fetchFreshData() as Void {
@@ -87,17 +105,33 @@ class GotrainView extends WatchUi.View {
                 var headerY = (topRegion != null) ? topRegion.y : bodyRegion.y;
                 var headerCenterX = (topRegion != null) ? topRegion.x + topRegion.width / 2 : boardCenterX;
 
-                dc.drawText(headerCenterX, headerY, Graphics.FONT_TINY, stationName, Graphics.TEXT_JUSTIFY_CENTER);
+                var font = Graphics.FONT_TINY;
+                var textWidth = dc.getTextWidthInPixels(stationName, font);
+                var availWidth = (topRegion != null) ? topRegion.width : (rightEdge - leftMargin);
 
-                var dividerY = headerY + dc.getFontHeight(Graphics.FONT_TINY) + 2;
+                if (textWidth > availWidth) {
+                    if (mScrollOffset > textWidth + 20) {
+                        mScrollOffset = -availWidth;
+                    }
+                    var clipX = (topRegion != null) ? topRegion.x : leftMargin;
+                    dc.setClip(clipX, headerY, availWidth, dc.getFontHeight(font) + 4);
+                    var drawX = clipX - mScrollOffset;
+                    dc.drawText(drawX, headerY, font, stationName, Graphics.TEXT_JUSTIFY_LEFT);
+                    dc.clearClip();
+                } else {
+                    dc.drawText(headerCenterX, headerY, font, stationName, Graphics.TEXT_JUSTIFY_CENTER);
+                }
+
+                var dividerY = headerY + dc.getFontHeight(font) + 2;
                 if (topRegion != null) {
                      dc.drawLine(topRegion.x, dividerY, topRegion.x + topRegion.width, dividerY);
                 } else {
                      dc.drawLine(leftMargin, dividerY, rightEdge, dividerY);
                 }
 
-                var rowAreaTop = (topRegion != null) ? bodyRegion.y : dividerY + 4;
-                var rowAreaHeight = bodyRegion.y + bodyRegion.height - rowAreaTop;
+                var rowAreaTop = dividerY + 6;
+                var bodyBottom = bodyRegion.y + bodyRegion.height;
+                var rowAreaHeight = bodyBottom - rowAreaTop;
                 var rowHeight = rowAreaHeight / 3;
 
                 for (var r = 0; r < departures.size(); r++) {
@@ -121,14 +155,17 @@ class GotrainView extends WatchUi.View {
 
                     var timeY = rowMidY - dc.getFontHeight(timeFont) / 2;
                     dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                    dc.drawText(leftMargin, timeY, timeFont, depTime, Graphics.TEXT_JUSTIFY_LEFT);
+                    
+                    var displayTime = depTime;
+                    if (r == 0 && subRegion != null) {
+                        displayTime = displayTime + " P" + depPlatform;
+                    }
+                    dc.drawText(leftMargin, timeY, timeFont, displayTime, Graphics.TEXT_JUSTIFY_LEFT);
 
                     dc.setColor(r == 0 ? Graphics.COLOR_GREEN : Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
                     
                     if (r > 0 || subRegion == null) {
                         dc.drawText(boardCenterX, rowMidY - dc.getFontHeight(infoFont) / 2, infoFont, rowCountdown, Graphics.TEXT_JUSTIFY_CENTER);
-                    } else {
-                        dc.drawText(boardCenterX, rowMidY - dc.getFontHeight(infoFont) / 2, infoFont, "P" + depPlatform, Graphics.TEXT_JUSTIFY_CENTER);
                     }
 
                     if (r > 0 || subRegion == null) {
@@ -185,9 +222,6 @@ class GotrainView extends WatchUi.View {
             dc.drawText(centerX, (height * 0.25).toNumber(), Graphics.FONT_SMALL, "Error", Graphics.TEXT_JUSTIFY_CENTER);
             dc.drawText(centerX, (height * 0.45).toNumber(), Graphics.FONT_TINY, msg, Graphics.TEXT_JUSTIFY_CENTER);
         }
-    }
-
-    function onHide() as Void {
     }
 
 }
