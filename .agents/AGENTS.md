@@ -24,3 +24,10 @@ This file contains the core project rules, context, and structural guidelines fo
 
 ## Communication Guidelines
 - **Avoid XY Problem**: When the user asks a question about how to do something, proactively analyze if the requested approach is the best solution for their underlying problem. Ask clarifying questions back to ensure the root problem is being solved rather than just fulfilling a potentially flawed request.
+
+## Building and Compiling
+- **Compiler Path**: `monkeyc` must be invoked. If it is not in the system PATH, it is typically located in the Connect IQ SDK `bin/` directory.
+- **Build Command**: Use the following generic command to build the project from the workspace root:
+  ```powershell
+  monkeyc.bat -y developer_key -f monkey.jungle -o bin\GotrainApp.prg -d instinct3solar45mm
+  ```

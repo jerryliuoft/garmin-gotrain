@@ -6,6 +6,8 @@ mir/
 # Developer Keys
 developer_key
 *.der
+source/ApiKey.mc
+
 
 # OS-specific files
 .DS_Store

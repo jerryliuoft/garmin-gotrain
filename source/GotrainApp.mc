@@ -1,6 +1,9 @@
 import Toybox.Application;
 import Toybox.Lang;
 import Toybox.WatchUi;
+import Toybox.Background;
+import Toybox.System;
+import Toybox.Time;
 
 class GotrainApp extends Application.AppBase {
 
@@ -16,17 +19,45 @@ class GotrainApp extends Application.AppBase {
     function onStop(state as Dictionary?) as Void {
     }
 
-    // Return the initial glance view
-    function getInitialView() as [Views] or [Views, InputDelegates] {
+    // Return the initial view of your application here
+    function getInitialView() {
+        // Register for background temporal event (every 15 minutes)
+        if (System has :ServiceDelegate) {
+            try {
+                var lastTime = Background.getLastTemporalEventTime();
+                if (lastTime != null) {
+                    var nextTime = lastTime.add(new Time.Duration(15 * 60));
+                    Background.registerForTemporalEvent(nextTime);
+                } else {
+                    Background.registerForTemporalEvent(Time.now());
+                }
+            } catch (ex) {
+                System.println("Background registration failed: " + ex.getErrorMessage());
+            }
+        }
+        
         return [ new GotrainView(), new GotrainInputDelegate() ];
     }
-
-    // Return the glance view
+    
+    // Return the glance view of your application here
     (:glance)
-    function getGlanceView() as [WatchUi.GlanceView] or [WatchUi.GlanceView, WatchUi.GlanceViewDelegate] or Null {
+    function getGlanceView() {
         return [ new GlanceView() ];
     }
-
+    
+    // Return the service delegate for background tasks
+    function getServiceDelegate() {
+        return [ new GotrainBackground() ];
+    }
+    
+    // Handle data returned from the background process
+    function onBackgroundData(data as Application.PersistableType) as Void {
+        if (data != null && data instanceof Array) {
+            var station = ScheduleHelper.getActiveStation();
+            ScheduleHelper.saveLiveDepartures(station, data as Array<Dictionary>);
+            WatchUi.requestUpdate();
+        }
+    }
 }
 
 function getApp() as GotrainApp {

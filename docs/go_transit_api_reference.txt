@@ -1,0 +1,101 @@
+Welcome!
+For detailed information on how to use the key and access the Metrolinx Open API, please
+see https://api.openmetrolinx.com/OpenDataAPI/Help/Index/en, and an explanation
+of the fields and data used in each API call can be found in the specification document
+at https://api.openmetrolinx.com/OpenDataAPI/Content/API_Data_Catalogue.pdf
+
+Here's a quick summary of what you need to know:
+ All of the URLs start with https://api.openmetrolinx.com/OpenDataAPI/ and end
+with your key ?key=300xxxxx
+For example, to access the GO GTFS vehicle positions feed, the URL would be
+https://api.openmetrolinx.com/OpenDataAPI/api/V1/Gtfs/Feed/VehiclePositio
+n?key=300xxxxx
+ UP Express GTFS real time feeds include UP in the URL, for example
+https://api.openmetrolinx.com/OpenDataAPI/api/V1/UP/Gtfs/Feed/VehiclePo
+sition?key=300xxxxx
+ All feeds are also available in either XML or JSON format. The GTFS feeds are also
+available in protocol buffer; instructions on how access these formats are included
+on the Introduction page.
+ There is a limit of 300 calls per second; exceeding this limit could result in you
+receiving 429 errors. Any perceived unusual activity (i.e. excessive number of
+incorrect calls or 429 errors) could get flagged and could result in a suspension of
+your key while investigated.
+What kind of data do we offer?
+Real time General Transit Feed Specification (GTFS) data, which is broken down into:
+ "vehicle position,” which shows all live trips with trip number, start time,
+destination, current vehicle location in latitude/longitude and stop ID as well as
+vehicle number
+ "trip updates," which shows all live trips with trip number, direction, start time,
+destination and detailed information for each upcoming stop on the trip including
+the stop ID, scheduled arrival time in epoch format, delay deviation and whether
+it is a scheduled stop or one that has been added
+ "alerts," which shows general service alerts, planned bus stop relocations and
+route detours broken down by route/line, station construction and elevator status
+notices, both of which are broken down further by line and station.
+
+Bus Stop information (stop), which is broken down into:
+ "next service," which shows predictions for all upcoming trips at that stop
+ "details,” which shows stop name and code, if bus and/or train is present, fare
+zone number and lists what facilities and if parking is available at that stop
+ "destinations," which shows list of routes that serve this stop along with direction
+of service and final stop code
+ "all," which shows list of all active bus stops by location code, stop ID and includes
+stop name and location name plus location type.
+Fare information (fares) returns fare information between two stop or station numbers.
+There are two feeds – one shows the current fares and the other is for a specific date.
+Service update, which is broken down into:
+ "service alert," which shows system alerts, planned bus stop relocations and
+route detours broken down by route/line and elevator status notices which are
+broken down by line and station
+ "information alert," which shows station construction notices and parking
+notices broken down by line and station,
+ "Union departures," which shows a list of upcoming train and bus departures
+from Union Station including departure time, trip number, line, if bus or train
+platform number [platform numbers don't display until 10-15 minutes prior to
+departure] and rail stations or major bus stops served
+ "exceptions train" and "exceptions bus" list any trips that have been cancelled
+or modified including stops that may have been removed or added; may contain
+non-revenue trips
+ "exceptions all" is same as "exceptions train" and "exceptions bus," but together
+in one place
+Service at a glance, which summarizes the status of live trips, is broken down into:
+ "buses," which shows all live bus trips with trip number, start and end times, route
+number, direction, trip destination sign info, current latitude and longitude of
+vehicle, delay deviation, if vehicle is moving or not, first, last, current and next stop
+code, if vehicle is at stop or between stops and when the data was last updated
+ "trains," which is same as “buses,” except that it shows the number of cars on the
+train and uses line codes and station codes instead of route numbers and stop
+numbers.
+
+Schedule, which returns schedule and trip planning information, is broken down into:
+ "journey," which displays the specified number of upcoming trips between two
+specified stops/stations on a specific date and time including if bus or train, trip
+number and route number; works with direct service only
+ "all," which shows list of all bus and train routes operating on the specified date
+including route number, name, destinations, directions and if is bus or train
+ "line/all," which shows all trips on specified bus route or train line in specified
+direction for specified service day including code for each stop served, scheduled
+time there and stop order
+ "line/stop," which shows stop names and numbers for specified route and
+direction on specified date and if stops are major or not; bus routes will only show
+variant (route number + letter where applicable) specified and "trip" (behaves
+differently between live and later or earlier trips - live trips show latitude and
+longitude, if moving or not, scheduled and predicted time for stops along route
+and track information for trains. Later and earlier trips do not show latitude and
+longitude, moving, predictions or track information).
+ “trip,” which shows destination stop code, current lat/long and both scheduled
+and estimated arrival and departure times at each stop (including the code) for
+the trip number specified. Lat/long and arrival predictions are only available for
+live trips; historic and future trips will only show scheduled times and predictions
+don’t show more than 30 minutes ahead. Train trips will also show the platform
+number.
+Please note that calls under “Fleet,” which are listed in the data catalogue, have been
+deprecated and will return a 403 error.
+As well, the ServiceUpdate/MarketingAlert, ServiceUpdate/ServiceGuarantee and
+ServiceataGlance/UPX calls are no longer used and will not return any data.
+
+Note that this document is confidential and solely intended for the purpose of
+users authorized by Metrolinx to access the Metrolinx Open API. It may not be
+distributed or shared without prior written consent from Metrolinx.
+
+Last updated: February 1, 2026

@@ -5,22 +5,45 @@ import Toybox.Time;
 
 class GotrainView extends WatchUi.View {
 
+    var mIsLoading as Boolean = false;
+    var mError as String or Null = null;
+
     function initialize() {
         WatchUi.View.initialize();
     }
 
     // Load your resources here
     function onLayout(dc as Dc) as Void {
-        // Just set a basic layout - don't reference missing resources
     }
 
     // Called when this View is brought to the foreground
     function onShow() as Void {
+        fetchFreshData();
+    }
+
+    function fetchFreshData() as Void {
+        mIsLoading = true;
+        mError = null;
+        var station = ScheduleHelper.getActiveStation();
+        var stationCode = ScheduleHelper.getStationCode(station);
+        GoTransitApi.fetchDepartures(stationCode, method(:onDataReceived));
+        WatchUi.requestUpdate();
+    }
+
+    function onDataReceived(responseCode as Number, data as Dictionary or String or Null) as Void {
+        mIsLoading = false;
+        if (responseCode == 200 && data != null && data instanceof Dictionary) {
+            var station = ScheduleHelper.getActiveStation();
+            var parsed = GoTransitApi.parseDepartures(data, station);
+            ScheduleHelper.saveLiveDepartures(station, parsed);
+        } else {
+            mError = "HTTP " + responseCode;
+        }
+        WatchUi.requestUpdate();
     }
 
     // Update the view - display the next 3 train departures
     function onUpdate(dc as Dc) as Void {
-        // Clear the screen with black background
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
 
@@ -34,15 +57,12 @@ class GotrainView extends WatchUi.View {
                 subscreen = dc.getSubscreen();
             }
 
-            // Fetch next 3 departures
             var departures = ScheduleHelper.getNextDepartures(3);
 
             if (departures.size() > 0) {
                 var nextDep = departures[0];
                 var stationName = nextDep["station"] as String;
 
-                // ---- Subscreen (top-right): platform of the NEXT train ----
-                // This is the most actionable info — "which platform do I run to?"
                 if (subscreen != null) {
                     var subCenterX = subscreen.x + (subscreen.width / 2);
                     var subCenterY = subscreen.y + (subscreen.height / 2);
@@ -51,21 +71,16 @@ class GotrainView extends WatchUi.View {
                     dc.drawText(subCenterX, subCenterY, Graphics.FONT_MEDIUM, nextDep["platform"] as String, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
                 }
 
-                // ---- Main display: departure board ----
-                // Keep content away from the subscreen on the right
                 var leftMargin = 10;
                 var rightEdge = (subscreen != null) ? subscreen.x - 4 : width - 8;
                 var boardCenterX = leftMargin + (rightEdge - leftMargin) / 2;
 
-                // Station name header
                 var headerY = 4;
                 dc.drawText(boardCenterX, headerY, Graphics.FONT_TINY, stationName, Graphics.TEXT_JUSTIFY_CENTER);
 
-                // Divider
                 var dividerY = headerY + dc.getFontHeight(Graphics.FONT_TINY) + 2;
                 dc.drawLine(leftMargin, dividerY, rightEdge, dividerY);
 
-                // Three evenly-spaced rows for the departure list
                 var rowAreaTop = dividerY + 4;
                 var rowAreaHeight = height - rowAreaTop - 4;
                 var rowHeight = rowAreaHeight / 3;
@@ -80,7 +95,6 @@ class GotrainView extends WatchUi.View {
                     var rowTop = rowAreaTop + r * rowHeight;
                     var rowMidY = rowTop + rowHeight / 2;
 
-                    // Highlight the next (first) row
                     if (r == 0) {
                         dc.setColor(0x303030, Graphics.COLOR_TRANSPARENT);
                         dc.fillRectangle(leftMargin - 2, rowTop, rightEdge - leftMargin + 4, rowHeight - 1);
@@ -90,22 +104,18 @@ class GotrainView extends WatchUi.View {
                     var timeFont = (r == 0) ? Graphics.FONT_MEDIUM : Graphics.FONT_SMALL;
                     var infoFont = Graphics.FONT_TINY;
 
-                    // Time — left side
                     var timeY = rowMidY - dc.getFontHeight(timeFont) / 2;
                     dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                     dc.drawText(leftMargin, timeY, timeFont, depTime, Graphics.TEXT_JUSTIFY_LEFT);
 
-                    // Countdown — center, green for next train
                     dc.setColor(r == 0 ? Graphics.COLOR_GREEN : Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
                     dc.drawText(boardCenterX, rowMidY - dc.getFontHeight(infoFont) / 2, infoFont, countdown, Graphics.TEXT_JUSTIFY_CENTER);
 
-                    // Platform — right side (skip row 0 if subscreen already shows it)
                     if (r > 0 || subscreen == null) {
                         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                         dc.drawText(rightEdge, rowMidY - dc.getFontHeight(infoFont) / 2, infoFont, "P" + depPlatform, Graphics.TEXT_JUSTIFY_RIGHT);
                     }
 
-                    // Row separator
                     if (r < departures.size() - 1) {
                         dc.setColor(0x404040, Graphics.COLOR_TRANSPARENT);
                         dc.drawLine(leftMargin, rowTop + rowHeight - 1, rightEdge, rowTop + rowHeight - 1);
@@ -114,7 +124,6 @@ class GotrainView extends WatchUi.View {
                     dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                 }
             } else {
-                // No trains
                 var activeStation = ScheduleHelper.getActiveStation();
                 if (subscreen != null) {
                     var subCenterX = subscreen.x + (subscreen.width / 2);
@@ -123,15 +132,32 @@ class GotrainView extends WatchUi.View {
                 }
                 var headerY = (height * 0.25).toNumber();
                 dc.drawText(width / 2, headerY, Graphics.FONT_SMALL, activeStation, Graphics.TEXT_JUSTIFY_CENTER);
-                var noTrainsY = headerY + dc.getFontHeight(Graphics.FONT_SMALL) + 15;
-                dc.drawText(width / 2, noTrainsY, Graphics.FONT_TINY, "No trains", Graphics.TEXT_JUSTIFY_CENTER);
+                
+                var msgY = headerY + dc.getFontHeight(Graphics.FONT_SMALL) + 15;
+                if (mIsLoading) {
+                    dc.drawText(width / 2, msgY, Graphics.FONT_TINY, "Loading...", Graphics.TEXT_JUSTIFY_CENTER);
+                } else if (mError != null) {
+                    dc.setColor(Graphics.COLOR_RED, Graphics.COLOR_TRANSPARENT);
+                    dc.drawText(width / 2, msgY, Graphics.FONT_TINY, mError, Graphics.TEXT_JUSTIFY_CENTER);
+                    dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                } else {
+                    dc.drawText(width / 2, msgY, Graphics.FONT_TINY, "No trains", Graphics.TEXT_JUSTIFY_CENTER);
+                }
             }
+            
+            // Draw a small loading indicator if we have cached data but are fetching fresh data
+            if (mIsLoading && departures.size() > 0) {
+                dc.setColor(Graphics.COLOR_DK_GRAY, Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(width - 5, 5, 2);
+                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+            }
+            
         } catch (ex) {
             var msg = ex.getErrorMessage();
             if (msg == null) {
                 msg = "Unknown Error";
             }
-            Toybox.System.println("Exception in onUpdate: " + msg);
+            System.println("Exception in onUpdate: " + msg);
 
             var width = dc.getWidth();
             var height = dc.getHeight();
@@ -141,7 +167,6 @@ class GotrainView extends WatchUi.View {
         }
     }
 
-    // Called when this View is removed from the screen
     function onHide() as Void {
     }
 
@@ -184,6 +209,8 @@ class GotrainSettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
             ScheduleHelper.setAfternoonStation(next);
             item.setSubLabel(next);
         }
+        
+        // When settings change, we should ideally fetch fresh data
         WatchUi.requestUpdate();
     }
 }
