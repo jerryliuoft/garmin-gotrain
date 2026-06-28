@@ -19,7 +19,6 @@ class GlanceView extends WatchUi.GlanceView {
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
 
         var height = dc.getHeight();
-        var centerY = height / 2;
 
         var nextDeparture = ScheduleHelper.getNextDeparture();
 

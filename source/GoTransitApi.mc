@@ -38,8 +38,6 @@ class GoTransitApi {
             var line = lines[i];
             if (line instanceof Dictionary) {
                 // Filter to only Lakeshore West ("LW")
-                var lineCode = line["LineCode"];
-                var dirCode = line["DirectionCode"];
                 
                 // Extract time
                 var departureStr = line["ComputedDepartureTime"];

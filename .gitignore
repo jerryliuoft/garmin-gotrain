@@ -12,3 +12,6 @@ source/ApiKey.mc
 # OS-specific files
 .DS_Store
 Thumbs.db
+
+# Customizations
+.agents/

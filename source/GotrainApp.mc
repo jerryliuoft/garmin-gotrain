@@ -5,6 +5,7 @@ import Toybox.Background;
 import Toybox.System;
 import Toybox.Time;
 
+(:background)
 class GotrainApp extends Application.AppBase {
 
     function initialize() {

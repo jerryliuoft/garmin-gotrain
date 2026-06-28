@@ -7,6 +7,7 @@ class GotrainView extends WatchUi.View {
 
     var mIsLoading as Boolean = false;
     var mError as String or Null = null;
+    var mLayoutManager as LayoutSystem.LayoutManager or Null = null;
 
     function initialize() {
         WatchUi.View.initialize();
@@ -14,6 +15,7 @@ class GotrainView extends WatchUi.View {
 
     // Load your resources here
     function onLayout(dc as Dc) as Void {
+        mLayoutManager = new LayoutSystem.LayoutManager(dc);
     }
 
     // Called when this View is brought to the foreground
@@ -49,40 +51,53 @@ class GotrainView extends WatchUi.View {
 
         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
 
+        if (mLayoutManager == null) {
+            return;
+        }
+
         try {
             var width = dc.getWidth();
             var height = dc.getHeight();
-            var subscreen = null;
-            if (dc has :getSubscreen) {
-                subscreen = dc.getSubscreen();
-            }
+            
+            var subRegion = mLayoutManager.subScreenRegion;
+            var topRegion = mLayoutManager.topLeftRegion;
+            var bodyRegion = mLayoutManager.mainBodyRegion;
 
             var departures = ScheduleHelper.getNextDepartures(3);
 
             if (departures.size() > 0) {
                 var nextDep = departures[0];
                 var stationName = nextDep["station"] as String;
+                var countdown = ScheduleHelper.formatMinutesUntil(nextDep["minutesUntil"] as Number);
 
-                if (subscreen != null) {
-                    var subCenterX = subscreen.x + (subscreen.width / 2);
-                    var subCenterY = subscreen.y + (subscreen.height / 2);
-                    var pltLabelY = subCenterY - dc.getFontHeight(Graphics.FONT_TINY) - 1;
-                    dc.drawText(subCenterX, pltLabelY, Graphics.FONT_TINY, "PLT", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-                    dc.drawText(subCenterX, subCenterY, Graphics.FONT_MEDIUM, nextDep["platform"] as String, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+                if (subRegion != null) {
+                    var subCenterX = subRegion.x + (subRegion.width / 2);
+                    var subCenterY = subRegion.y + (subRegion.height / 2);
+                    
+                    // Draw countdown in subscreen
+                    dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                    dc.drawText(subCenterX, subCenterY, Graphics.FONT_MEDIUM, countdown, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+                    dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                 }
 
-                var leftMargin = 10;
-                var rightEdge = (subscreen != null) ? subscreen.x - 4 : width - 8;
+                var leftMargin = bodyRegion.x;
+                var rightEdge = bodyRegion.x + bodyRegion.width;
                 var boardCenterX = leftMargin + (rightEdge - leftMargin) / 2;
 
-                var headerY = 4;
-                dc.drawText(boardCenterX, headerY, Graphics.FONT_TINY, stationName, Graphics.TEXT_JUSTIFY_CENTER);
+                var headerY = (topRegion != null) ? topRegion.y : bodyRegion.y;
+                var headerCenterX = (topRegion != null) ? topRegion.x + topRegion.width / 2 : boardCenterX;
+
+                dc.drawText(headerCenterX, headerY, Graphics.FONT_TINY, stationName, Graphics.TEXT_JUSTIFY_CENTER);
 
                 var dividerY = headerY + dc.getFontHeight(Graphics.FONT_TINY) + 2;
-                dc.drawLine(leftMargin, dividerY, rightEdge, dividerY);
+                if (topRegion != null) {
+                     dc.drawLine(topRegion.x, dividerY, topRegion.x + topRegion.width, dividerY);
+                } else {
+                     dc.drawLine(leftMargin, dividerY, rightEdge, dividerY);
+                }
 
-                var rowAreaTop = dividerY + 4;
-                var rowAreaHeight = height - rowAreaTop - 4;
+                var rowAreaTop = (topRegion != null) ? bodyRegion.y : dividerY + 4;
+                var rowAreaHeight = bodyRegion.y + bodyRegion.height - rowAreaTop;
                 var rowHeight = rowAreaHeight / 3;
 
                 for (var r = 0; r < departures.size(); r++) {
@@ -90,7 +105,7 @@ class GotrainView extends WatchUi.View {
                     var depTime = dep["time"] as String;
                     var depPlatform = dep["platform"] as String;
                     var depMinutes = dep["minutesUntil"] as Number;
-                    var countdown = ScheduleHelper.formatMinutesUntil(depMinutes);
+                    var rowCountdown = ScheduleHelper.formatMinutesUntil(depMinutes);
 
                     var rowTop = rowAreaTop + r * rowHeight;
                     var rowMidY = rowTop + rowHeight / 2;
@@ -109,9 +124,14 @@ class GotrainView extends WatchUi.View {
                     dc.drawText(leftMargin, timeY, timeFont, depTime, Graphics.TEXT_JUSTIFY_LEFT);
 
                     dc.setColor(r == 0 ? Graphics.COLOR_GREEN : Graphics.COLOR_LT_GRAY, Graphics.COLOR_TRANSPARENT);
-                    dc.drawText(boardCenterX, rowMidY - dc.getFontHeight(infoFont) / 2, infoFont, countdown, Graphics.TEXT_JUSTIFY_CENTER);
+                    
+                    if (r > 0 || subRegion == null) {
+                        dc.drawText(boardCenterX, rowMidY - dc.getFontHeight(infoFont) / 2, infoFont, rowCountdown, Graphics.TEXT_JUSTIFY_CENTER);
+                    } else {
+                        dc.drawText(boardCenterX, rowMidY - dc.getFontHeight(infoFont) / 2, infoFont, "P" + depPlatform, Graphics.TEXT_JUSTIFY_CENTER);
+                    }
 
-                    if (r > 0 || subscreen == null) {
+                    if (r > 0 || subRegion == null) {
                         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                         dc.drawText(rightEdge, rowMidY - dc.getFontHeight(infoFont) / 2, infoFont, "P" + depPlatform, Graphics.TEXT_JUSTIFY_RIGHT);
                     }
@@ -125,9 +145,9 @@ class GotrainView extends WatchUi.View {
                 }
             } else {
                 var activeStation = ScheduleHelper.getActiveStation();
-                if (subscreen != null) {
-                    var subCenterX = subscreen.x + (subscreen.width / 2);
-                    var subCenterY = subscreen.y + (subscreen.height / 2);
+                if (subRegion != null) {
+                    var subCenterX = subRegion.x + (subRegion.width / 2);
+                    var subCenterY = subRegion.y + (subRegion.height / 2);
                     dc.drawText(subCenterX, subCenterY, Graphics.FONT_SMALL, "-", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
                 }
                 var headerY = (height * 0.25).toNumber();
