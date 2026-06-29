@@ -20,9 +20,8 @@ class GotrainApp extends Application.AppBase {
     function onStop(state as Dictionary?) as Void {
     }
 
-    // Return the initial view of your application here
-    function getInitialView() {
-        // Register for background temporal event (every 15 minutes)
+    (:glance)
+    function registerBackgroundEvent() {
         if (System has :ServiceDelegate) {
             try {
                 var lastTime = Background.getLastTemporalEventTime();
@@ -36,6 +35,11 @@ class GotrainApp extends Application.AppBase {
                 System.println("Background registration failed: " + ex.getErrorMessage());
             }
         }
+    }
+
+    // Return the initial view of your application here
+    function getInitialView() {
+        registerBackgroundEvent();
         
         return [ new GotrainView(), new GotrainInputDelegate() ];
     }
@@ -43,6 +47,7 @@ class GotrainApp extends Application.AppBase {
     // Return the glance view of your application here
     (:glance)
     function getGlanceView() {
+        registerBackgroundEvent();
         return [ new GlanceView() ];
     }
     
