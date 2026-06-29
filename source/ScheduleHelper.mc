@@ -55,8 +55,6 @@ class ScheduleHelper {
         Storage.setValue("departures_time_" + station, Time.now().value());
     }
 
-    // Get live departures for the active station
-    // Returns an Array of departure dictionaries.
     static function getNextDepartures(count as Number) as Array<Dictionary> {
         var station = getActiveStation();
         var data = Storage.getValue("departures_" + station);
@@ -69,16 +67,40 @@ class ScheduleHelper {
                 for (var i = 0; i < data.size() && results.size() < count; i++) {
                     var dep = data[i];
                     if (dep instanceof Dictionary) {
-                        // Re-calculate minutesUntil based on current time
-                        // We will skip this complex re-calc here and rely on the fact that 
-                        // background fetches happen every 15 minutes.
-                        results.add(dep);
+                        var timeStr = dep["time"];
+                        if (timeStr != null && timeStr instanceof String) {
+                            var minutesUntil = calculateMinutesUntil(timeStr);
+                            if (minutesUntil >= 0) {
+                                dep["minutesUntil"] = minutesUntil;
+                                results.add(dep);
+                            }
+                        }
                     }
                 }
             }
         }
 
         return results;
+    }
+
+    // Calculate minutes until a given HH:MM time string
+    static function calculateMinutesUntil(timeStr as String) as Number {
+        var colonIdx = timeStr.find(":");
+        if (colonIdx != null && colonIdx >= 1) {
+            var h = timeStr.substring(0, colonIdx).toNumber();
+            var m = timeStr.substring(colonIdx + 1, timeStr.length()).toNumber();
+            if (h != null && m != null) {
+                var depMins = (h * 60) + m;
+                var info = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+                var curMins = (info.hour * 60) + info.min;
+                var minutesUntil = depMins - curMins;
+                if (minutesUntil < -720) {
+                    minutesUntil += 24 * 60;
+                }
+                return minutesUntil;
+            }
+        }
+        return -1;
     }
 
     // Find the next upcoming departure for the active station

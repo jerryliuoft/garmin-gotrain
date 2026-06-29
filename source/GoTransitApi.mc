@@ -38,6 +38,25 @@ class GoTransitApi {
             var line = lines[i];
             if (line instanceof Dictionary) {
                 // Filter to only Lakeshore West ("LW")
+                var lineCode = line["LineCode"];
+                if (lineCode == null || !lineCode.equals("LW")) {
+                    continue;
+                }
+                
+                // Filter by direction
+                var dirName = line["DirectionName"];
+                if (dirName != null && dirName instanceof String) {
+                    var isToUnion = (dirName.find("Union") != null);
+                    if (stationName.equals("Union")) {
+                        if (isToUnion) {
+                            continue; // From Union, we go Westbound (away from Union)
+                        }
+                    } else {
+                        if (!isToUnion) {
+                            continue; // From other stations, we go Eastbound (towards Union)
+                        }
+                    }
+                }
                 
                 // Extract time
                 var departureStr = line["ComputedDepartureTime"];
@@ -56,22 +75,12 @@ class GoTransitApi {
                         var timeFormatted = "--:--";
                         var minutesUntil = 0;
                         if (departureStr != null && departureStr instanceof String) {
-                             // Naive parse assuming format like "2026-06-26 15:30:00" or "15:30:00" or similar
                              var colonIdx = departureStr.find(":");
                              if (colonIdx != null && colonIdx >= 2) {
                                  timeFormatted = departureStr.substring(colonIdx - 2, colonIdx + 3);
-                                 var h = departureStr.substring(colonIdx - 2, colonIdx).toNumber();
-                                 var m = departureStr.substring(colonIdx + 1, colonIdx + 3).toNumber();
-                                 if (h != null && m != null) {
-                                     var depMins = (h * 60) + m;
-                                     var info = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
-                                     var curMins = (info.hour * 60) + info.min;
-                                     minutesUntil = depMins - curMins;
-                                     if (minutesUntil < -720) { // Time wrapped to next day
-                                         minutesUntil += 24 * 60;
-                                     } else if (minutesUntil < 0) { // Train already departed? Or slightly late
-                                         minutesUntil = 0;
-                                     }
+                                 minutesUntil = ScheduleHelper.calculateMinutesUntil(timeFormatted);
+                                 if (minutesUntil < 0) {
+                                     minutesUntil = 0; // Keep slightly late/departed trains showing as "now"
                                  }
                              }
                         }
