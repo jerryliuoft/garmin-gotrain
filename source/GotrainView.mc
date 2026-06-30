@@ -88,16 +88,6 @@ class GotrainView extends WatchUi.View {
                 var stationName = StationData.getStationNameFromCode(stationCode);
                 var countdown = ScheduleHelper.formatMinutesUntil(nextDep["minutesUntil"] as Number);
 
-                if (subRegion != null) {
-                    var subCenterX = subRegion.x + (subRegion.width / 2);
-                    var subCenterY = subRegion.y + (subRegion.height / 2);
-                    
-                    // Draw countdown in subscreen
-                    dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                    dc.drawText(subCenterX, subCenterY, Graphics.FONT_MEDIUM, countdown, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-                    dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                }
-
                 var leftMargin = bodyRegion.x;
                 var rightEdge = bodyRegion.x + bodyRegion.width;
                 var boardCenterX = leftMargin + (rightEdge - leftMargin) / 2;
@@ -123,12 +113,6 @@ class GotrainView extends WatchUi.View {
                 }
 
                 var dividerY = headerY + dc.getFontHeight(font) + 2;
-                if (topRegion != null) {
-                     dc.drawLine(topRegion.x, dividerY, topRegion.x + topRegion.width, dividerY);
-                } else {
-                     dc.drawLine(leftMargin, dividerY, rightEdge, dividerY);
-                }
-
                 var rowAreaTop = dividerY + 6;
                 var bodyBottom = bodyRegion.y + bodyRegion.height;
                 var rowAreaHeight = bodyBottom - rowAreaTop;
@@ -145,8 +129,18 @@ class GotrainView extends WatchUi.View {
                     var rowMidY = rowTop + rowHeight / 2;
 
                     if (r == 0) {
+                        // Draw full width highlight
                         dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                         dc.fillRectangle(leftMargin - 2, rowTop, rightEdge - leftMargin + 4, rowHeight - 1);
+                        
+                        // Mask out the subscreen with a black circle
+                        if (subRegion != null) {
+                            dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
+                            var subCenterX = subRegion.x + (subRegion.width / 2);
+                            var subCenterY = subRegion.y + (subRegion.height / 2);
+                            // Draw circle to act as an eraser over the subscreen area
+                            dc.fillCircle(subCenterX, subCenterY, (subRegion.width / 2) + 2);
+                        }
                     }
 
                     var timeFont = (r == 0) ? Graphics.FONT_MEDIUM : Graphics.FONT_SMALL;
@@ -178,6 +172,15 @@ class GotrainView extends WatchUi.View {
                     }
 
                     dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                }
+
+                if (subRegion != null) {
+                    var subCenterX = subRegion.x + (subRegion.width / 2);
+                    var subCenterY = subRegion.y + (subRegion.height / 2);
+                    
+                    // Draw countdown in subscreen
+                    dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                    dc.drawText(subCenterX, subCenterY, Graphics.FONT_MEDIUM, countdown, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
                 }
             } else {
                 var activeStationCode = ScheduleHelper.getActiveStationCode();
