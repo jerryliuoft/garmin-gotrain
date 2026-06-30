@@ -3,6 +3,13 @@ import Toybox.Application;
 import Toybox.Lang;
 
 class SettingsMenu {
+    static function formatHour(hour as Number) as String {
+        if (hour == 0) { return "12:00 AM"; }
+        if (hour < 12) { return hour + ":00 AM"; }
+        if (hour == 12) { return "12:00 PM"; }
+        return (hour - 12) + ":00 PM";
+    }
+
     static function pushMainMenu() as Void {
         var menu = new WatchUi.Menu2({:title => "Settings"});
         
@@ -18,9 +25,14 @@ class SettingsMenu {
         if (arrId == null) { arrId = 1; }
         var arrName = StationData.getStationName(arrId as Number);
 
+        var flipHour = Application.Storage.getValue("FlipHour");
+        if (flipHour == null) { flipHour = 12; }
+        var flipStr = formatHour(flipHour as Number);
+
         menu.addItem(new WatchUi.MenuItem("Route", routeName as String, "route", null));
-        menu.addItem(new WatchUi.MenuItem("Departure", depName, "departure", null));
-        menu.addItem(new WatchUi.MenuItem("Arrival", arrName, "arrival", null));
+        menu.addItem(new WatchUi.MenuItem("Morning Station", depName, "departure", null));
+        menu.addItem(new WatchUi.MenuItem("Afternoon Station", arrName, "arrival", null));
+        menu.addItem(new WatchUi.MenuItem("Switch Time", flipStr, "flip_time", null));
         
         WatchUi.pushView(menu, new MainMenuDelegate(menu), WatchUi.SLIDE_IMMEDIATE);
     }
@@ -47,7 +59,7 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
             }
             WatchUi.pushView(menu, new RouteMenuDelegate(item, mMenu), WatchUi.SLIDE_IMMEDIATE);
         } else if (id.equals("departure") || id.equals("arrival")) {
-            var menu = new WatchUi.Menu2({:title => id.equals("departure") ? "Departure" : "Arrival"});
+            var menu = new WatchUi.Menu2({:title => id.equals("departure") ? "Morning Station" : "Afternoon Station"});
             var routeId = Application.Storage.getValue("RouteId");
             if (routeId == null) { routeId = 0; }
             var stations = StationData.getStationsForRoute(routeId as Number);
@@ -58,6 +70,12 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
                 menu.addItem(new WatchUi.MenuItem(name, null, stId, null));
             }
             WatchUi.pushView(menu, new StationMenuDelegate(item, id), WatchUi.SLIDE_IMMEDIATE);
+        } else if (id.equals("flip_time")) {
+            var menu = new WatchUi.Menu2({:title => "Select Time"});
+            for (var i = 0; i < 24; i++) {
+                menu.addItem(new WatchUi.MenuItem(SettingsMenu.formatHour(i), null, i, null));
+            }
+            WatchUi.pushView(menu, new FlipTimeMenuDelegate(item), WatchUi.SLIDE_IMMEDIATE);
         }
     }
 }
@@ -120,6 +138,22 @@ class StationMenuDelegate extends WatchUi.Menu2InputDelegate {
         }
         mParentItem.setSubLabel(item.getLabel());
         
+        WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
+    }
+}
+
+class FlipTimeMenuDelegate extends WatchUi.Menu2InputDelegate {
+    private var mParentItem as WatchUi.MenuItem;
+
+    function initialize(parentItem as WatchUi.MenuItem) {
+        Menu2InputDelegate.initialize();
+        mParentItem = parentItem;
+    }
+
+    function onSelect(item as WatchUi.MenuItem) as Void {
+        var hour = item.getId() as Number;
+        Application.Storage.setValue("FlipHour", hour);
+        mParentItem.setSubLabel(item.getLabel());
         WatchUi.popView(WatchUi.SLIDE_IMMEDIATE);
     }
 }

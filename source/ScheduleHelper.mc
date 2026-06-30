@@ -16,10 +16,17 @@ class ScheduleHelper {
         return StationData.getStationCode(id != null ? (id as Number) : 1);
     }
 
-    // Get active station CODE based on the current hour (Morning = < 12:00 PM, Afternoon = >= 12:00 PM)
+    static function getFlipHour() as Number {
+        var hour = Toybox.Application.Storage.getValue("FlipHour");
+        if (hour == null) { return 12; }
+        return hour as Number;
+    }
+
+    // Get active station CODE based on the current hour (Morning = < Flip Hour, Afternoon = >= Flip Hour)
     static function getActiveStationCode() as String {
         var info = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
-        if (info.hour < 12) {
+        var flipHour = getFlipHour();
+        if (info.hour < flipHour) {
             return getMorningStationCode();
         } else {
             return getAfternoonStationCode();
