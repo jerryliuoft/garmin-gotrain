@@ -20,7 +20,7 @@ class GoTransitApi {
     }
     
     // Parse the raw Dictionary into our standard UI format
-    static function parseDepartures(data as Dictionary or Null, stationName as String) as Array<Dictionary> {
+    static function parseDepartures(data as Dictionary or Null, stationCode as String) as Array<Dictionary> {
         var results = [] as Array<Dictionary>;
         if (data == null || !data.hasKey("NextService")) {
             return results;
@@ -37,9 +37,10 @@ class GoTransitApi {
         for (var i = 0; i < lines.size(); i++) {
             var line = lines[i];
             if (line instanceof Dictionary) {
-                // Filter to only Lakeshore West ("LW")
+                // Filter to the user's route line
+                var targetLine = ScheduleHelper.getTargetLineCode();
                 var lineCode = line["LineCode"];
-                if (lineCode == null || !lineCode.equals("LW")) {
+                if (lineCode == null || !lineCode.equals(targetLine)) {
                     continue;
                 }
                 
@@ -47,13 +48,13 @@ class GoTransitApi {
                 var dirName = line["DirectionName"];
                 if (dirName != null && dirName instanceof String) {
                     var isToUnion = (dirName.find("Union") != null);
-                    if (stationName.equals("Union")) {
+                    if (stationCode.equals("UN")) {
                         if (isToUnion) {
-                            continue; // From Union, we go Westbound (away from Union)
+                            continue; // From Union, we go Westbound/Eastbound (away from Union)
                         }
                     } else {
                         if (!isToUnion) {
-                            continue; // From other stations, we go Eastbound (towards Union)
+                            continue; // From other stations, we go towards Union
                         }
                     }
                 }
@@ -91,7 +92,7 @@ class GoTransitApi {
                                 "time" => timeFormatted,
                                 "platform" => platform,
                                 "minutesUntil" => minutesUntil,
-                                "station" => stationName
+                                "station" => stationCode
                             });
                         }
             }

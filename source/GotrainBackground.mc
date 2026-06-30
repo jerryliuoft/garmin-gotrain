@@ -11,16 +11,15 @@ class GotrainBackground extends System.ServiceDelegate {
     }
 
     function onTemporalEvent() as Void {
-        var station = ScheduleHelper.getActiveStation();
-        var stationCode = ScheduleHelper.getStationCode(station);
+        var stationCode = ScheduleHelper.getActiveStationCode();
         
         GoTransitApi.fetchDepartures(stationCode, method(:onReceiveData));
     }
 
     function onReceiveData(responseCode as Number, data as Dictionary or String or Null) as Void {
         if (responseCode == 200 && data != null && data instanceof Dictionary) {
-            var station = ScheduleHelper.getActiveStation();
-            var parsed = GoTransitApi.parseDepartures(data, station);
+            var stationCode = ScheduleHelper.getActiveStationCode();
+            var parsed = GoTransitApi.parseDepartures(data, stationCode);
             Background.exit(parsed);
         } else {
             Background.exit(null);

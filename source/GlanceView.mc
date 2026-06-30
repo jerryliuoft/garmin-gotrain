@@ -38,7 +38,8 @@ class GlanceView extends WatchUi.GlanceView {
             dc.drawText(10, (height * 0.15).toNumber(), fontSmall, line1Text, Graphics.TEXT_JUSTIFY_LEFT);
             dc.drawText(10, (height * 0.55).toNumber(), fontTiny, line2Text, Graphics.TEXT_JUSTIFY_LEFT);
         } else {
-            var stationName = ScheduleHelper.getActiveStation();
+            var stationCode = ScheduleHelper.getActiveStationCode();
+            var stationName = StationData.getStationNameFromCode(stationCode);
             dc.drawText(10, (height * 0.15).toNumber(), Graphics.FONT_SMALL, stationName, Graphics.TEXT_JUSTIFY_LEFT);
             dc.drawText(10, (height * 0.55).toNumber(), Graphics.FONT_TINY, "No live data", Graphics.TEXT_JUSTIFY_LEFT);
         }

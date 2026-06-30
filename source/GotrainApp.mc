@@ -59,7 +59,7 @@ class GotrainApp extends Application.AppBase {
     // Handle data returned from the background process
     function onBackgroundData(data as Application.PersistableType) as Void {
         if (data != null && data instanceof Array) {
-            var station = ScheduleHelper.getActiveStation();
+            var station = ScheduleHelper.getActiveStationCode();
             ScheduleHelper.saveLiveDepartures(station, data as Array<Dictionary>);
             WatchUi.requestUpdate();
         }

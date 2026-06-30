@@ -6,47 +6,46 @@ import Toybox.Application.Storage;
 (:background)
 class ScheduleHelper {
 
-    // Get the configured morning station (defaults to Clarkson)
-    static function getMorningStation() as String {
-        var station = Storage.getValue("morning_station");
-        if (station == null) {
-            return "Clarkson";
-        }
-        return station as String;
+    static function getMorningStationCode() as String {
+        var id = Toybox.Application.Storage.getValue("DepartureStation");
+        return StationData.getStationCode(id != null ? (id as Number) : 0);
     }
 
-    // Set the configured morning station
-    static function setMorningStation(station as String) as Void {
-        Storage.setValue("morning_station", station);
+    static function getAfternoonStationCode() as String {
+        var id = Toybox.Application.Storage.getValue("ArrivalStation");
+        return StationData.getStationCode(id != null ? (id as Number) : 1);
     }
 
-    // Get the configured afternoon station (defaults to Union)
-    static function getAfternoonStation() as String {
-        var station = Storage.getValue("afternoon_station");
-        if (station == null) {
-            return "Union";
-        }
-        return station as String;
-    }
-
-    // Set the configured afternoon station
-    static function setAfternoonStation(station as String) as Void {
-        Storage.setValue("afternoon_station", station);
-    }
-
-    // Get active station name based on the current hour (Morning = < 12:00 PM, Afternoon = >= 12:00 PM)
-    static function getActiveStation() as String {
+    // Get active station CODE based on the current hour (Morning = < 12:00 PM, Afternoon = >= 12:00 PM)
+    static function getActiveStationCode() as String {
         var info = Time.Gregorian.info(Time.now(), Time.FORMAT_SHORT);
         if (info.hour < 12) {
-            return getMorningStation();
+            return getMorningStationCode();
         } else {
-            return getAfternoonStation();
+            return getAfternoonStationCode();
         }
     }
-    
-    // Map station name to GO API station code
+
+    // Map station name to GO API station code - no longer needed as we use codes natively
     static function getStationCode(station as String) as String {
-        return station.equals("Clarkson") ? "CL" : "UN";
+        return station;
+    }
+
+    // Determine the LineCode (LW, LE, GT, etc.) based on the user's selected Route
+    static function getTargetLineCode() as String {
+        var routeId = Toybox.Application.Storage.getValue("RouteId");
+        if (routeId == null) { routeId = 0; }
+        
+        var id = routeId as Number;
+        if (id == 0) { return "LW"; }
+        if (id == 1) { return "LE"; }
+        if (id == 2) { return "GT"; }
+        if (id == 3) { return "BR"; }
+        if (id == 4) { return "MI"; }
+        if (id == 5) { return "RH"; }
+        if (id == 6) { return "ST"; }
+        
+        return "LW";
     }
     
     // Save live departures for a station
@@ -56,7 +55,7 @@ class ScheduleHelper {
     }
 
     static function getNextDepartures(count as Number) as Array<Dictionary> {
-        var station = getActiveStation();
+        var station = getActiveStationCode();
         var data = Storage.getValue("departures_" + station);
         var results = [] as Array<Dictionary>;
         
