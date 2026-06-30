@@ -3,6 +3,7 @@ import Toybox.WatchUi;
 import Toybox.Lang;
 import Toybox.Time;
 import Toybox.Timer;
+import Toybox.System;
 
 class GotrainView extends WatchUi.View {
 
@@ -128,9 +129,13 @@ class GotrainView extends WatchUi.View {
                     var rowTop = rowAreaTop + r * rowHeight;
                     var rowMidY = rowTop + rowHeight / 2;
 
+                    var hasColor = (subRegion == null);
+                    var highlightBg = hasColor ? Graphics.COLOR_DK_GREEN : Graphics.COLOR_WHITE;
+                    var highlightFg = hasColor ? Graphics.COLOR_WHITE : Graphics.COLOR_BLACK;
+
                     if (r == 0) {
                         // Draw full width highlight
-                        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                        dc.setColor(highlightBg, Graphics.COLOR_TRANSPARENT);
                         dc.fillRectangle(leftMargin - 2, rowTop, rightEdge - leftMargin + 4, rowHeight - 1);
                         
                         // Mask out the subscreen with a black circle
@@ -147,7 +152,7 @@ class GotrainView extends WatchUi.View {
                     var infoFont = Graphics.FONT_TINY;
 
                     var timeY = rowMidY - dc.getFontHeight(timeFont) / 2;
-                    dc.setColor(r == 0 ? Graphics.COLOR_BLACK : Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                    dc.setColor(r == 0 ? highlightFg : Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                     
                     var displayTime = depTime;
                     if (r == 0 && subRegion != null) {
@@ -155,7 +160,7 @@ class GotrainView extends WatchUi.View {
                     }
                     dc.drawText(leftMargin, timeY, timeFont, displayTime, Graphics.TEXT_JUSTIFY_LEFT);
 
-                    dc.setColor(r == 0 ? Graphics.COLOR_BLACK : Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
+                    dc.setColor(r == 0 ? highlightFg : Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                     
                     if (r > 0 || subRegion == null) {
                         dc.drawText(boardCenterX, rowMidY - dc.getFontHeight(infoFont) / 2, infoFont, rowCountdown, Graphics.TEXT_JUSTIFY_CENTER);

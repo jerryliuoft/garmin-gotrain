@@ -1,6 +1,7 @@
 import Toybox.Graphics;
 import Toybox.WatchUi;
 import Toybox.Lang;
+import Toybox.System;
 
 module LayoutSystem {
 
@@ -59,8 +60,24 @@ module LayoutSystem {
                 );
             } else {
                 // Standard device fallback
-                var horizontalMargin = (screenWidth * 0.10).toNumber();
-                var verticalMargin = (screenHeight * 0.10).toNumber();
+                var shape = System.getDeviceSettings().screenShape;
+                var horizontalMargin = 0;
+                var verticalMargin = 0;
+                
+                if (shape == System.SCREEN_SHAPE_ROUND) {
+                    // For round screens, use a larger margin to avoid corner clipping
+                    horizontalMargin = (screenWidth * 0.15).toNumber();
+                    verticalMargin = (screenHeight * 0.15).toNumber();
+                } else if (shape == System.SCREEN_SHAPE_RECTANGLE) {
+                    // Rectangular screens don't suffer from corner clipping
+                    horizontalMargin = (screenWidth * 0.05).toNumber();
+                    verticalMargin = (screenHeight * 0.05).toNumber();
+                } else {
+                    // Semi-round or other
+                    horizontalMargin = (screenWidth * 0.10).toNumber();
+                    verticalMargin = (screenHeight * 0.10).toNumber();
+                }
+
                 mainBodyRegion = new Rect(
                     horizontalMargin,
                     verticalMargin,

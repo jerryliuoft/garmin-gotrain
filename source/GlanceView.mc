@@ -27,7 +27,8 @@ class GlanceView extends WatchUi.GlanceView {
             var platformStr = "P" + (nextDeparture["platform"] as String);
             var minutesUntil = nextDeparture["minutesUntil"] as Number;
             var minutesStr = ScheduleHelper.formatMinutesUntil(minutesUntil);
-            var stationName = nextDeparture["station"] as String;
+            var stationCode = nextDeparture["station"] as String;
+            var stationName = StationData.getStationNameFromCode(stationCode);
             
             var fontSmall = Graphics.FONT_SMALL;
             var fontTiny = Graphics.FONT_TINY;
