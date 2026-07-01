@@ -5,6 +5,20 @@ import Toybox.System;
 
 module LayoutSystem {
 
+    module FontManager {
+        function getTinyFont(dc as Graphics.Dc) as Graphics.FontType {
+            return dc.getWidth() >= 390 ? Graphics.FONT_SMALL : Graphics.FONT_TINY;
+        }
+
+        function getSmallFont(dc as Graphics.Dc) as Graphics.FontType {
+            return dc.getWidth() >= 390 ? Graphics.FONT_MEDIUM : Graphics.FONT_SMALL;
+        }
+
+        function getMediumFont(dc as Graphics.Dc) as Graphics.FontType {
+            return dc.getWidth() >= 390 ? Graphics.FONT_LARGE : Graphics.FONT_MEDIUM;
+        }
+    }
+
     class Rect {
         var x as Number;
         var y as Number;

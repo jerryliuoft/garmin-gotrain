@@ -96,7 +96,7 @@ class GotrainView extends WatchUi.View {
                 var headerY = (topRegion != null) ? topRegion.y : bodyRegion.y;
                 var headerCenterX = (topRegion != null) ? topRegion.x + topRegion.width / 2 : boardCenterX;
 
-                var font = Graphics.FONT_TINY;
+                var font = LayoutSystem.FontManager.getTinyFont(dc);
                 var textWidth = dc.getTextWidthInPixels(stationName, font);
                 var availWidth = (topRegion != null) ? topRegion.width : (rightEdge - leftMargin);
 
@@ -148,8 +148,8 @@ class GotrainView extends WatchUi.View {
                         }
                     }
 
-                    var timeFont = (r == 0) ? Graphics.FONT_MEDIUM : Graphics.FONT_SMALL;
-                    var infoFont = Graphics.FONT_TINY;
+                    var timeFont = (r == 0) ? LayoutSystem.FontManager.getMediumFont(dc) : LayoutSystem.FontManager.getSmallFont(dc);
+                    var infoFont = LayoutSystem.FontManager.getTinyFont(dc);
 
                     var timeY = rowMidY - dc.getFontHeight(timeFont) / 2;
                     dc.setColor(r == 0 ? highlightFg : Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
@@ -162,13 +162,21 @@ class GotrainView extends WatchUi.View {
 
                     dc.setColor(r == 0 ? highlightFg : Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
                     
+                    var timeWidth = dc.getTextWidthInPixels(displayTime, timeFont);
+                    var platformStr = "P" + depPlatform;
+                    var platformWidth = dc.getTextWidthInPixels(platformStr, infoFont);
+                    
+                    var timeEndX = leftMargin + timeWidth;
+                    var platformStartX = rightEdge - platformWidth;
+                    var dynamicCenterX = timeEndX + (platformStartX - timeEndX) / 2;
+                    
                     if (r > 0 || subRegion == null) {
-                        dc.drawText(boardCenterX, rowMidY - dc.getFontHeight(infoFont) / 2, infoFont, rowCountdown, Graphics.TEXT_JUSTIFY_CENTER);
+                        dc.drawText(dynamicCenterX, rowMidY - dc.getFontHeight(infoFont) / 2, infoFont, rowCountdown, Graphics.TEXT_JUSTIFY_CENTER);
                     }
 
                     if (r > 0 || subRegion == null) {
                         // Keep text color same as previous drawText
-                        dc.drawText(rightEdge, rowMidY - dc.getFontHeight(infoFont) / 2, infoFont, "P" + depPlatform, Graphics.TEXT_JUSTIFY_RIGHT);
+                        dc.drawText(rightEdge, rowMidY - dc.getFontHeight(infoFont) / 2, infoFont, platformStr, Graphics.TEXT_JUSTIFY_RIGHT);
                     }
 
                     if (r < departures.size() - 1) {
@@ -185,7 +193,7 @@ class GotrainView extends WatchUi.View {
                     
                     // Draw countdown in subscreen
                     dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                    dc.drawText(subCenterX, subCenterY, Graphics.FONT_MEDIUM, countdown, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+                    dc.drawText(subCenterX, subCenterY, LayoutSystem.FontManager.getMediumFont(dc), countdown, Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
                 }
             } else {
                 var activeStationCode = ScheduleHelper.getActiveStationCode();
@@ -193,19 +201,19 @@ class GotrainView extends WatchUi.View {
                 if (subRegion != null) {
                     var subCenterX = subRegion.x + (subRegion.width / 2);
                     var subCenterY = subRegion.y + (subRegion.height / 2);
-                    dc.drawText(subCenterX, subCenterY, Graphics.FONT_SMALL, "-", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+                    dc.drawText(subCenterX, subCenterY, LayoutSystem.FontManager.getSmallFont(dc), "-", Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
                 }
                 var headerY = (height * 0.25).toNumber();
-                dc.drawText(width / 2, headerY, Graphics.FONT_SMALL, activeStationName, Graphics.TEXT_JUSTIFY_CENTER);
+                dc.drawText(width / 2, headerY, LayoutSystem.FontManager.getSmallFont(dc), activeStationName, Graphics.TEXT_JUSTIFY_CENTER);
                 
-                var msgY = headerY + dc.getFontHeight(Graphics.FONT_SMALL) + 15;
+                var msgY = headerY + dc.getFontHeight(LayoutSystem.FontManager.getSmallFont(dc)) + 15;
                 if (mIsLoading) {
-                    dc.drawText(width / 2, msgY, Graphics.FONT_TINY, "Loading...", Graphics.TEXT_JUSTIFY_CENTER);
+                    dc.drawText(width / 2, msgY, LayoutSystem.FontManager.getTinyFont(dc), "Loading...", Graphics.TEXT_JUSTIFY_CENTER);
                 } else if (mError != null) {
                     dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                    dc.drawText(width / 2, msgY, Graphics.FONT_TINY, mError, Graphics.TEXT_JUSTIFY_CENTER);
+                    dc.drawText(width / 2, msgY, LayoutSystem.FontManager.getTinyFont(dc), mError, Graphics.TEXT_JUSTIFY_CENTER);
                 } else {
-                    dc.drawText(width / 2, msgY, Graphics.FONT_TINY, "No trains", Graphics.TEXT_JUSTIFY_CENTER);
+                    dc.drawText(width / 2, msgY, LayoutSystem.FontManager.getTinyFont(dc), "No trains", Graphics.TEXT_JUSTIFY_CENTER);
                 }
             }
             
@@ -225,8 +233,8 @@ class GotrainView extends WatchUi.View {
             var width = dc.getWidth();
             var height = dc.getHeight();
             var centerX = width / 2;
-            dc.drawText(centerX, (height * 0.25).toNumber(), Graphics.FONT_SMALL, "Error", Graphics.TEXT_JUSTIFY_CENTER);
-            dc.drawText(centerX, (height * 0.45).toNumber(), Graphics.FONT_TINY, msg, Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, (height * 0.25).toNumber(), LayoutSystem.FontManager.getSmallFont(dc), "Error", Graphics.TEXT_JUSTIFY_CENTER);
+            dc.drawText(centerX, (height * 0.45).toNumber(), LayoutSystem.FontManager.getTinyFont(dc), msg, Graphics.TEXT_JUSTIFY_CENTER);
         }
     }
 
