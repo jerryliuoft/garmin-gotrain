@@ -4,6 +4,7 @@ import Toybox.Lang;
 import Toybox.Time;
 import Toybox.Timer;
 import Toybox.System;
+import Toybox.Communications;
 
 class GotrainView extends WatchUi.View {
 
@@ -45,6 +46,12 @@ class GotrainView extends WatchUi.View {
     function fetchFreshData() as Void {
         mIsLoading = true;
         mError = null;
+        if (!System.getDeviceSettings().phoneConnected) {
+            mIsLoading = false;
+            mError = "No Phone Connection";
+            WatchUi.requestUpdate();
+            return;
+        }
         var stationCode = ScheduleHelper.getActiveStationCode();
         GoTransitApi.fetchDepartures(stationCode, method(:onDataReceived));
         WatchUi.requestUpdate();
@@ -56,6 +63,8 @@ class GotrainView extends WatchUi.View {
             var stationCode = ScheduleHelper.getActiveStationCode();
             var parsed = GoTransitApi.parseDepartures(data, stationCode);
             ScheduleHelper.saveLiveDepartures(stationCode, parsed);
+        } else if (responseCode == Communications.BLE_CONNECTION_UNAVAILABLE) {
+            mError = "No Phone Connection";
         } else {
             mError = "HTTP " + responseCode;
         }
